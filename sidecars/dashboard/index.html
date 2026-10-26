@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convo &amp; Token Dashboard</title>
+  <script src="/preload.js"></script>
+  <style>
+    :root {
+      --bg-primary: var(--background, #0f172a);
+      --fg-primary: var(--foreground, #f1f5f9);
+      --bg-card: color-mix(in srgb, var(--fg-primary) 5%, var(--bg-primary));
+      --bg-card-hover: color-mix(in srgb, var(--fg-primary) 9%, var(--bg-primary));
+      --border-subtle: color-mix(in srgb, var(--fg-primary) 12%, transparent);
+      --fg-muted: color-mix(in srgb, var(--fg-primary) 60%, transparent);
+      --c-input: #38bdf8;
+      --c-cache: #818cf8;
+      --c-output: #34d399;
+      --c-think: #fbbf24;
+      --c-danger: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-primary);
+      color: var(--fg-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .app {
+      padding: 12px;
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-group h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: var(--fg-muted);
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--fg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .btn-primary {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+
+    .btn-primary:hover {
+      background: rgba(56, 189, 248, 0.26);
+    }
+
+    /* KPI Strip */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+      gap: 8px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .kpi-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--fg-muted);
+    }
+
+    .kpi-value {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-sub {
+      font-size: 10.5px;
+      color: var(--fg-muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--fg-muted);
+      padding: 4px 2px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 6px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--fg-muted);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--fg-primary);
+      border-color: var(--border-subtle);
+    }
+
+    /* Filter Bar */
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .input, .select {
+      background: var(--bg-card);
+      color: var(--fg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11.5px;
+      outline: none;
+    }
+
+    .input {
+      flex: 1 1 130px;
+      min-width: 110px;
+    }
+
+    .chip-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--fg-muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 7px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .chip-toggle input {
+      margin: 0;
+    }
+
+    /* Conversation List */
+    .convo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .convo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 9px 10px;
+      transition: border-color 0.12s;
+    }
+
+    .convo-card:hover {
+      border-color: color-mix(in srgb, var(--fg-primary) 24%, transparent);
+    }
+
+    .convo-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .convo-title-wrap {
+      min-width: 0;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .convo-title {
+      font-weight: 600;
+      font-size: 12.5px;
+      word-break: break-word;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .convo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 10.5px;
+      color: var(--fg-muted);
+      margin-top: 3px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+      background: color-mix(in srgb, var(--fg-primary) 7%, transparent);
+    }
+
+    .badge-running {
+      color: #34d399;
+      border-color: rgba(52, 211, 153, 0.4);
+      background: rgba(52, 211, 153, 0.12);
+    }
+
+    .badge-sub {
+      color: #a78bfa;
+      border-color: rgba(167, 139, 250, 0.35);
+      background: rgba(167, 139, 250, 0.1);
+    }
+
+    .badge-ws {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.3);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    /* Token Stacked Bar */
+    .token-bar-row {
+      margin-top: 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stacked-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--fg-primary) 10%, transparent);
+      overflow: hidden;
+      display: flex;
+      width: 100%;
+    }
+
+    .seg-input { background: var(--c-input); }
+    .seg-cache { background: var(--c-cache); }
+    .seg-output { background: var(--c-output); }
+    .seg-think { background: var(--c-think); }
+
+    .token-nums {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 10.5px;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Context meter */
+    .ctx-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ctx-mini-bar {
+      width: 44px;
+      height: 5px;
+      background: color-mix(in srgb, var(--fg-primary) 12%, transparent);
+      border-radius: 99px;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .ctx-mini-fill {
+      height: 100%;
+      border-radius: 99px;
+    }
+
+    /* Turn Drilldown */
+    .drilldown {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-subtle);
+      display: none;
+    }
+
+    .drilldown.open {
+      display: block;
+    }
+
+    .turns-table-wrap {
+      max-height: 210px;
+      overflow-y: auto;
+      margin-top: 6px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+    }
+
+    table.turns-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    table.turns-table th,
+    table.turns-table td {
+      padding: 4px 6px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    table.turns-table th:first-child,
+    table.turns-table td:first-child,
+    table.turns-table th:nth-child(2),
+    table.turns-table td:nth-child(2) {
+      text-align: left;
+    }
+
+    table.turns-table th {
+      position: sticky;
+      top: 0;
+      background: var(--bg-primary);
+      color: var(--fg-muted);
+      font-weight: 600;
+    }
+
+    /* Section Card for Charts */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    /* Daily Vertical Chart */
+    .daily-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 130px;
+      padding: 8px 4px 4px 4px;
+      border-bottom: 1px solid var(--border-subtle);
+      overflow-x: auto;
+    }
+
+    .day-col {
+      flex: 1 0 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .day-bar-stack {
+      width: 100%;
+      max-width: 24px;
+      border-radius: 4px 4px 0 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column-reverse;
+      min-height: 2px;
+    }
+
+    .day-label {
+      font-size: 9.5px;
+      color: var(--fg-muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .day-val {
+      font-size: 9.5px;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Horizontal Rows for Models & Workspaces & Quotas */
+    .h-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .h-row:last-child {
+      border-bottom: none;
+    }
+
+    .h-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+    }
+
+    .h-row-name {
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .h-row-sub {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 12px;
+      color: var(--fg-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title-group">
+        <div>
+          <h1>Convo &amp; Token Dashboard</h1>
+          <div class="subtitle" id="status-subtitle">Loading conversation telemetry…</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn" id="btn-refresh" title="Refresh data">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Tokens</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub" id="kpi-total-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fresh + Output</div>
+        <div class="kpi-value" id="kpi-fresh">—</div>
+        <div class="kpi-sub" id="kpi-fresh-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cache Hit Rate</div>
+        <div class="kpi-value" id="kpi-cache">—</div>
+        <div class="kpi-sub" id="kpi-cache-sub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Conversations</div>
+        <div class="kpi-value" id="kpi-convos">—</div>
+        <div class="kpi-sub" id="kpi-convos-sub">—</div>
+      </div>
+    </div>
+
+    <!-- Color Legend -->
+    <div class="legend">
+      <span class="legend-item"><span class="dot seg-input"></span>Fresh Input</span>
+      <span class="legend-item"><span class="dot seg-cache"></span>Cache Read</span>
+      <span class="legend-item"><span class="dot seg-output"></span>Output</span>
+      <span class="legend-item"><span class="dot seg-think"></span>Thinking</span>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="convos">Conversations</button>
+      <button class="tab-btn" data-tab="patterns">Token Patterns</button>
+      <button class="tab-btn" data-tab="quotas">Model Quotas</button>
+    </div>
+
+    <!-- TAB 1: CONVERSATIONS -->
+    <div id="tab-convos">
+      <div class="filters" style="margin-bottom: 8px;">
+        <input type="text" class="input" id="search-input" placeholder="Search title or workspace…" />
+        <select class="select" id="ws-filter">
+          <option value="">All Workspaces</option>
+        </select>
+        <select class="select" id="sort-select">
+          <option value="recent">Sort: Last Active</option>
+          <option value="totalTokens">Sort: Total Tokens</option>
+          <option value="freshTokens">Sort: Fresh + Out Tokens</option>
+          <option value="contextPct">Sort: Context Fill %</option>
+          <option value="steps">Sort: Step Count</option>
+        </select>
+        <label class="chip-toggle" title="Include subagent trajectories">
+          <input type="checkbox" id="toggle-subagents" />
+          Subagents
+        </label>
+      </div>
+      <div class="convo-list" id="convo-list"></div>
+    </div>
+
+    <!-- TAB 2: TOKEN PATTERNS -->
+    <div id="tab-patterns" style="display:none; flex-direction:column; gap:10px;">
+      <!-- Daily Token Usage Chart -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Daily Token Burn Pattern</h2>
+          <label class="chip-toggle">
+            <input type="checkbox" id="toggle-exclude-cache" />
+            Exclude Cache Reads
+          </label>
+        </div>
+        <div class="daily-chart" id="daily-chart"></div>
+      </div>
+
+      <!-- Model Usage Breakdown -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Token Usage by Model</h2>
+        </div>
+        <div id="model-list"></div>
+      </div>
+
+      <!-- Workspace Breakdown -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Token Usage by Workspace</h2>
+        </div>
+        <div id="workspace-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: QUOTAS -->
+    <div id="tab-quotas" style="display:none; flex-direction:column; gap:10px;">
+      <div class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">Live Model Quotas &amp; Reset Timers</h2>
+        </div>
+        <div id="quota-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let STATE = null;
+    let EXPANDED_IDS = new Set();
+
+    function fmtTokens(n) {
+      n = Number(n || 0);
+      if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+      if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+      return String(n);
+    }
+
+    function fmtRelTime(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      const diffSec = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+      if (diffSec < 60) return `${diffSec}s ago`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h ago`;
+      const diffDay = Math.floor(diffHr / 24);
+      return `${diffDay}d ago`;
+    }
+
+    function fmtCountdown(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const diffSec = Math.floor((d.getTime() - Date.now()) / 1000);
+      if (diffSec <= 0) return 'Resetting soon';
+      const h = Math.floor(diffSec / 3600);
+      const m = Math.floor((diffSec % 3600) / 60);
+      return h > 0 ? `Resets in ${h}h ${m}m` : `Resets in ${m}m`;
+    }
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function apiFetch(path, options = {}) {
+      if (window.sidecar && typeof window.sidecar.fetch === 'function') {
+        return window.sidecar.fetch(path, options);
+      }
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const headers = new Headers(options.headers || {});
+      headers.set('Content-Type', 'application/json');
+      if (token) headers.set('X-Sidecar-Token', token);
+      return fetch(path, { ...options, headers });
+    }
+
+    async function focusConversation(cascadeId, evt) {
+      if (evt) evt.stopPropagation();
+      try {
+        if (window.sidecar && window.sidecar.ui && typeof window.sidecar.ui.toggleConversation === 'function') {
+          window.sidecar.ui.toggleConversation(cascadeId);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      try {
+        await apiFetch('/api/focus-conversation', {
+          method: 'POST',
+          body: JSON.stringify({ cascadeId })
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function stackedBarHtml(inp, cache, out, think) {
+      const tot = Math.max(1, inp + cache + out + think);
+      const pI = ((inp / tot) * 100).toFixed(1);
+      const pC = ((cache / tot) * 100).toFixed(1);
+      const pO = ((out / tot) * 100).toFixed(1);
+      const pT = ((think / tot) * 100).toFixed(1);
+      return `
+        <div class="stacked-bar" title="Fresh Input: ${fmtTokens(inp)} | Cache Read: ${fmtTokens(cache)} | Output: ${fmtTokens(out)} | Thinking: ${fmtTokens(think)}">
+          <div class="seg-input" style="width:${pI}%"></div>
+          <div class="seg-cache" style="width:${pC}%"></div>
+          <div class="seg-output" style="width:${pO}%"></div>
+          <div class="seg-think" style="width:${pT}%"></div>
+        </div>
+      `;
+    }
+
+    function renderKPIs(data) {
+      const t = data.totals || {};
+      const freshOut = (t.inputTokens || 0) + (t.outputTokens || 0) + (t.thinkingTokens || 0);
+      document.getElementById('kpi-total').textContent = fmtTokens(t.totalTokens);
+      document.getElementById('kpi-total-sub').textContent = `${fmtTokens(t.cacheReadTokens)} cached · ${fmtTokens(freshOut)} non-cached`;
+
+      document.getElementById('kpi-fresh').textContent = fmtTokens(freshOut);
+      document.getElementById('kpi-fresh-sub').textContent = `In ${fmtTokens(t.inputTokens)} · Out ${fmtTokens(t.outputTokens)} · Think ${fmtTokens(t.thinkingTokens)}`;
+
+      document.getElementById('kpi-cache').textContent = `${t.cacheHitPct ?? 0}%`;
+      document.getElementById('kpi-cache-sub').textContent = `${fmtTokens(t.cacheReadTokens)} cache reads`;
+
+      document.getElementById('kpi-convos').textContent = `${t.rootConversationCount || 0}`;
+      document.getElementById('kpi-convos-sub').textContent = `+${t.subagentCount || 0} subagents · ${t.callCount || 0} LLM calls`;
+    }
+
+    function populateWorkspaceFilter(data) {
+      const sel = document.getElementById('ws-filter');
+      const current = sel.value;
+      const names = Array.from(new Set((data.conversations || []).map(c => c.workspaceName).filter(Boolean))).sort();
+      sel.innerHTML = `<option value="">All Workspaces (${names.length})</option>` +
+        names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+      if (names.includes(current)) sel.value = current;
+    }
+
+    function renderConversations() {
+      if (!STATE) return;
+      const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+      const ws = document.getElementById('ws-filter').value;
+      const sortBy = document.getElementById('sort-select').value;
+      const showSub = document.getElementById('toggle-subagents').checked;
+
+      // Group subagents by rootConversationId for quick reference
+      const subByRoot = {};
+      for (const c of (STATE.conversations || [])) {
+        if (c.isSubagent) {
+          (subByRoot[c.rootConversationId] = subByRoot[c.rootConversationId] || []).push(c);
+        }
+      }
+
+      let list = (STATE.conversations || []).filter(c => {
+        if (!showSub && c.isSubagent) return false;
+        if (ws && c.workspaceName !== ws) return false;
+        if (q) {
+          const hay = `${c.title} ${c.workspaceName} ${c.primaryModel} ${c.cascadeId}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      list.sort((a, b) => {
+        if (sortBy === 'totalTokens') return (b.totalTokens || 0) - (a.totalTokens || 0);
+        if (sortBy === 'freshTokens') return (b.freshAndOutputTokens || 0) - (a.freshAndOutputTokens || 0);
+        if (sortBy === 'contextPct') return (b.contextFillPct || 0) - (a.contextFillPct || 0);
+        if (sortBy === 'steps') return (b.stepCount || 0) - (a.stepCount || 0);
+        return String(b.lastModifiedTime || '').localeCompare(String(a.lastModifiedTime || ''));
+      });
+
+      const container = document.getElementById('convo-list');
+      if (!list.length) {
+        container.innerHTML = `<div class="empty-state">No matching conversations found.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(c => {
+        const isOpen = EXPANDED_IDS.has(c.cascadeId);
+        const childSubs = subByRoot[c.cascadeId] || [];
+        const ctxColor = c.contextFillPct > 80 ? 'var(--c-danger)' : c.contextFillPct > 55 ? 'var(--c-think)' : 'var(--c-output)';
+
+        const turnsHtml = (c.turns || []).length ? `
+          <div class="turns-table-wrap">
+            <table class="turns-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Model</th>
+                  <th>Fresh In</th>
+                  <th>Cached</th>
+                  <th>Out</th>
+                  <th>Think</th>
+                  <th>Ctx</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${c.turns.map(t => `
+                  <tr>
+                    <td>s${t.step}</td>
+                    <td title="${esc(t.responseModel || t.modelLabel)}">${esc(t.modelLabel.replace(/ \(.*\)/, ''))}</td>
+                    <td>${fmtTokens(t.inputTokens)}</td>
+                    <td>${fmtTokens(t.cacheReadTokens)}</td>
+                    <td>${fmtTokens(t.outputTokens)}</td>
+                    <td>${t.thinkingTokens ? fmtTokens(t.thinkingTokens) : '—'}</td>
+                    <td>${t.contextUsed ? fmtTokens(t.contextUsed) : '—'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : `<div style="font-size:11px;color:var(--fg-muted);margin-top:4px;">No LLM generator calls recorded in this conversation.</div>`;
+
+        const subHtml = childSubs.length ? `
+          <div style="margin-top:6px; font-size:11px;">
+            <div style="color:var(--fg-muted); margin-bottom:4px;">Subagent Trajectories (${childSubs.length}):</div>
+            ${childSubs.map(s => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; border-radius:4px; background:color-mix(in srgb, var(--fg-primary) 4%, transparent); margin-bottom:3px;">
+                <span>${esc(s.title)} · ${s.stepCount} steps · ${fmtTokens(s.totalTokens)} tok</span>
+                <button class="btn" style="padding:2px 6px;font-size:10px;" onclick="focusConversation('${esc(s.cascadeId)}', event)">Open</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
+
+        return `
+          <div class="convo-card" data-cid="${esc(c.cascadeId)}">
+            <div class="convo-top">
+              <div class="convo-title-wrap" onclick="toggleDrilldown('${esc(c.cascadeId)}')">
+                <div class="convo-title">
+                  <span>${isOpen ? '▾' : '▸'} ${esc(c.title)}</span>
+                  ${c.status === 'RUNNING' ? '<span class="badge badge-running">RUNNING</span>' : ''}
+                  ${c.isSubagent ? '<span class="badge badge-sub">SUBAGENT</span>' : ''}
+                  ${childSubs.length ? `<span class="badge badge-sub">+${childSubs.length} sub</span>` : ''}
+                </div>
+                <div class="convo-meta">
+                  <span class="badge badge-ws">${esc(c.workspaceName)}</span>
+                  <span>${fmtRelTime(c.lastModifiedTime)}</span>
+                  <span>· ${c.stepCount} steps (${c.callCount} calls)</span>
+                  <span>· ${esc(c.primaryModel)}</span>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="focusConversation('${esc(c.cascadeId)}', event)" title="Switch to this conversation">
+                Open ↗
+              </button>
+            </div>
+
+            <div class="token-bar-row" onclick="toggleDrilldown('${esc(c.cascadeId)}')" style="cursor:pointer;">
+              ${stackedBarHtml(c.inputTokens, c.cacheReadTokens, c.outputTokens, c.thinkingTokens)}
+              <div class="token-nums">
+                <span>Total: <strong>${fmtTokens(c.totalTokens)}</strong> (Fresh+Out: ${fmtTokens(c.freshAndOutputTokens)})</span>
+                <span class="ctx-pill" title="Latest context window usage: ${fmtTokens(c.latestContextUsed)} / ${fmtTokens(c.maxContextTokens || 200000)}">
+                  Ctx ${c.contextFillPct}%
+                  <span class="ctx-mini-bar">
+                    <span class="ctx-mini-fill" style="width:${Math.min(100, c.contextFillPct)}%; background:${ctxColor}"></span>
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <div class="drilldown ${isOpen ? 'open' : ''}" id="drill-${esc(c.cascadeId)}">
+              <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:10.5px; color:var(--fg-muted);">
+                <span>In: <b style="color:var(--c-input)">${fmtTokens(c.inputTokens)}</b> · Cache: <b style="color:var(--c-cache)">${fmtTokens(c.cacheReadTokens)}</b> · Out: <b style="color:var(--c-output)">${fmtTokens(c.outputTokens)}</b> · Think: <b style="color:var(--c-think)">${fmtTokens(c.thinkingTokens)}</b></span>
+                <span>Peak Context: ${fmtTokens(c.peakContextUsed)} · Avg TTFT: ${c.avgTtftMs ? (c.avgTtftMs / 1000).toFixed(2) + 's' : '—'}</span>
+              </div>
+              ${turnsHtml}
+              ${subHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.toggleDrilldown = function(cid) {
+      if (EXPANDED_IDS.has(cid)) {
+        EXPANDED_IDS.delete(cid);
+      } else {
+        EXPANDED_IDS.add(cid);
+      }
+      renderConversations();
+    };
+
+    function renderPatterns() {
+      if (!STATE) return;
+      const excludeCache = document.getElementById('toggle-exclude-cache').checked;
+      const daily = STATE.dailyUsage || [];
+      const chartEl = document.getElementById('daily-chart');
+
+      if (!daily.length) {
+        chartEl.innerHTML = `<div class="empty-state" style="width:100%;">No daily token usage recorded yet.</div>`;
+      } else {
+        const vals = daily.map(d => {
+          const cache = excludeCache ? 0 : (d.cacheReadTokens || 0);
+          return (d.inputTokens || 0) + cache + (d.outputTokens || 0) + (d.thinkingTokens || 0);
+        });
+        const maxVal = Math.max(1, ...vals);
+
+        chartEl.innerHTML = daily.map((d, idx) => {
+          const inp = d.inputTokens || 0;
+          const cache = excludeCache ? 0 : (d.cacheReadTokens || 0);
+          const out = d.outputTokens || 0;
+          const think = d.thinkingTokens || 0;
+          const tot = inp + cache + out + think;
+          const hPct = Math.max(3, Math.round((tot / maxVal) * 88));
+
+          const pI = tot ? (inp / tot) * 100 : 0;
+          const pC = tot ? (cache / tot) * 100 : 0;
+          const pO = tot ? (out / tot) * 100 : 0;
+          const pT = tot ? (think / tot) * 100 : 0;
+          const shortDate = d.date && d.date.length >= 10 ? d.date.slice(5) : d.date;
+
+          return `
+            <div class="day-col" title="${esc(d.date)}: ${fmtTokens(tot)} tokens (${d.calls} LLM calls)\nFresh In: ${fmtTokens(inp)} | Cache: ${fmtTokens(d.cacheReadTokens)} | Out: ${fmtTokens(out)} | Think: ${fmtTokens(think)}">
+              <div class="day-val">${fmtTokens(tot)}</div>
+              <div class="day-bar-stack" style="height:${hPct}px;">
+                <div class="seg-input" style="height:${pI}%"></div>
+                <div class="seg-cache" style="height:${pC}%"></div>
+                <div class="seg-output" style="height:${pO}%"></div>
+                <div class="seg-think" style="height:${pT}%"></div>
+              </div>
+              <div class="day-label">${esc(shortDate)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Models
+      const modelEl = document.getElementById('model-list');
+      const models = STATE.modelUsage || [];
+      modelEl.innerHTML = models.length ? models.map(m => {
+        const promptTot = (m.inputTokens || 0) + (m.cacheReadTokens || 0);
+        const cacheHit = promptTot ? Math.round((m.cacheReadTokens / promptTot) * 100) : 0;
+        return `
+          <div class="h-row">
+            <div class="h-row-top">
+              <span class="h-row-name">${esc(m.label)}</span>
+              <span><strong>${fmtTokens(m.totalTokens)}</strong> tok · ${m.calls} calls</span>
+            </div>
+            ${stackedBarHtml(m.inputTokens, m.cacheReadTokens, m.outputTokens, m.thinkingTokens)}
+            <div class="h-row-sub">
+              <span>In ${fmtTokens(m.inputTokens)} · Cache ${fmtTokens(m.cacheReadTokens)} (${cacheHit}% hit)</span>
+              <span>Out ${fmtTokens(m.outputTokens)} · Think ${fmtTokens(m.thinkingTokens)}</span>
+            </div>
+          </div>
+        `;
+      }).join('') : `<div class="empty-state">No model telemetry yet.</div>`;
+
+      // Workspaces
+      const wsEl = document.getElementById('workspace-list');
+      const workspaces = STATE.workspaceUsage || [];
+      wsEl.innerHTML = workspaces.length ? workspaces.map(w => `
+        <div class="h-row">
+          <div class="h-row-top">
+            <span class="h-row-name">${esc(w.workspace)}</span>
+            <span><strong>${fmtTokens(w.totalTokens)}</strong> tok · ${w.conversations} convos</span>
+          </div>
+          ${stackedBarHtml(w.inputTokens, w.cacheReadTokens, w.outputTokens, w.thinkingTokens)}
+          <div class="h-row-sub">
+            <span>Fresh In ${fmtTokens(w.inputTokens)} · Cache ${fmtTokens(w.cacheReadTokens)}</span>
+            <span>Out ${fmtTokens(w.outputTokens)} · Think ${fmtTokens(w.thinkingTokens)}</span>
+          </div>
+        </div>
+      `).join('') : `<div class="empty-state">No workspace usage found.</div>`;
+    }
+
+    function renderQuotas() {
+      if (!STATE) return;
+      const qEl = document.getElementById('quota-list');
+      const quotas = STATE.quotas || [];
+      if (!quotas.length) {
+        qEl.innerHTML = `<div class="empty-state">No quota information available from Language Server.</div>`;
+        return;
+      }
+
+      qEl.innerHTML = quotas.map(q => {
+        const rem = q.remainingFraction != null ? Math.round(q.remainingFraction * 100) : null;
+        const barColor = rem === null ? 'var(--c-input)' : rem <= 15 ? 'var(--c-danger)' : rem <= 40 ? 'var(--c-think)' : 'var(--c-output)';
+        const countdown = fmtCountdown(q.resetTime);
+        return `
+          <div class="h-row">
+            <div class="h-row-top">
+              <span class="h-row-name">
+                ${esc(q.label)}
+                ${q.tagTitle ? `<span class="badge">${esc(q.tagTitle)}</span>` : ''}
+              </span>
+              <span><strong>${rem !== null ? rem + '% left' : 'Available'}</strong></span>
+            </div>
+            <div class="stacked-bar">
+              <div style="width:${rem !== null ? rem : 100}%; background:${barColor}"></div>
+            </div>
+            <div class="h-row-sub">
+              <span>${esc(q.model)}</span>
+              <span>${esc(countdown)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadDashboard(forceRefresh = false) {
+      const sub = document.getElementById('status-subtitle');
+      sub.textContent = 'Refreshing telemetry…';
+      try {
+        const res = await apiFetch('/api/dashboard', {
+          method: forceRefresh ? 'POST' : 'GET',
+          body: forceRefresh ? JSON.stringify({ forceRefresh: true }) : undefined
+        });
+        const data = await res.json();
+        if (data.error) {
+          sub.textContent = `Error: ${data.error}`;
+          return;
+        }
+        STATE = data;
+        renderKPIs(data);
+        populateWorkspaceFilter(data);
+        renderConversations();
+        renderPatterns();
+        renderQuotas();
+        const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        sub.textContent = `Updated ${t} · ${data.totals?.rootConversationCount || 0} convos`;
+      } catch (err) {
+        sub.textContent = `Failed to load: ${err.message}`;
+      }
+    }
+
+    // Wire up tabs & controls
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.getAttribute('data-tab');
+        document.getElementById('tab-convos').style.display = target === 'convos' ? 'block' : 'none';
+        document.getElementById('tab-patterns').style.display = target === 'patterns' ? 'flex' : 'none';
+        document.getElementById('tab-quotas').style.display = target === 'quotas' ? 'flex' : 'none';
+      });
+    });
+
+    document.getElementById('search-input').addEventListener('input', renderConversations);
+    document.getElementById('ws-filter').addEventListener('change', renderConversations);
+    document.getElementById('sort-select').addEventListener('change', renderConversations);
+    document.getElementById('toggle-subagents').addEventListener('change', renderConversations);
+    document.getElementById('toggle-exclude-cache').addEventListener('change', renderPatterns);
+    document.getElementById('btn-refresh').addEventListener('click', () => loadDashboard(true));
+
+    loadDashboard(false);
+    setInterval(() => loadDashboard(false), 20000);
+  </script>
+</body>
+</html>

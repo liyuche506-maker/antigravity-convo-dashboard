@@ -1,0 +1,12 @@
+{
+  "name": "convo-dashboard",
+  "displayName": "Conversation & Token Dashboard",
+  "description": "Side-panel dashboard to manage multiple conversations across workspaces and visualize token usage patterns, context window fill, and live model quotas.",
+  "version": "0.1.0",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Open the Conversation & Token Dashboard in the side panel",
+    "Which of my conversations used the most tokens recently?",
+    "Show my token usage patterns and current model quotas"
+  ]
+}
